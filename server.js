@@ -1,3 +1,4 @@
+const path = require("path");
 const express = require("express");
 const cors = require("cors");
 require("dotenv").config();
@@ -9,11 +10,13 @@ const petRoutes = require("./routes/petRoutes");
 const reminderRoutes = require("./routes/reminderRoutes");
 const rewardRoutes = require("./routes/rewardRoutes");
 const dashboardRoutes = require("./routes/dashboardRoutes");
+const uploadRoutes = require("./routes/uploadRoutes");
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 connectDB();
 
@@ -29,6 +32,7 @@ app.use("/api/pets", petRoutes);
 app.use("/api/reminders", reminderRoutes);
 app.use("/api/rewards", rewardRoutes);
 app.use("/api/dashboard", dashboardRoutes);
+app.use("/api/uploads", uploadRoutes);
 
 app.use((req, res) => {
     res.status(404).json({ message: "Route not found" });

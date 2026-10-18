@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const { fromLegacyRepeat } = require("./recurrence");
 
 function isValidObjectId(id) {
     return mongoose.Types.ObjectId.isValid(id);
@@ -45,9 +46,34 @@ function formatPet(pet) {
     };
 }
 
+function formatRecurrence(recurrence) {
+    if (!recurrence) {
+        return null;
+    }
+
+    return {
+        frequency: recurrence.frequency || "none",
+        interval: recurrence.interval || 1,
+        unit: recurrence.unit || "day",
+        weekDays: Array.isArray(recurrence.weekDays) ? recurrence.weekDays : [],
+        monthDay: recurrence.monthDay ?? null,
+        ends: recurrence.ends || "never",
+        endDate: formatDate(recurrence.endDate)
+    };
+}
+
 function formatReminder(reminder) {
     const pet = reminder.pet;
     const petId = pet && pet._id ? pet._id : pet;
+    let recurrence = formatRecurrence(reminder.recurrence);
+    const legacyRepeat = reminder.repeat;
+    if (
+        (!recurrence || recurrence.frequency === "none") &&
+        legacyRepeat &&
+        legacyRepeat !== "None"
+    ) {
+        recurrence = formatRecurrence(fromLegacyRepeat(legacyRepeat));
+    }
 
     return {
         id: reminder._id,
@@ -60,6 +86,7 @@ function formatReminder(reminder) {
         date: formatDate(reminder.date),
         time: reminder.time || "",
         repeat: reminder.repeat,
+        recurrence,
         completed: reminder.completed,
         createdAt: reminder.createdAt
     };

@@ -11,7 +11,39 @@ const REMINDER_TYPES = [
     "Other"
 ];
 
-const REPEAT_OPTIONS = ["None", "Daily", "Weekly", "Monthly", "Yearly"];
+const recurrenceSchema = new mongoose.Schema(
+    {
+        frequency: {
+            type: String,
+            default: "none"
+        },
+        interval: {
+            type: Number,
+            default: 1,
+            min: 1
+        },
+        unit: {
+            type: String,
+            default: "day"
+        },
+        weekDays: {
+            type: [Number],
+            default: []
+        },
+        monthDay: {
+            type: Number,
+            default: null
+        },
+        ends: {
+            type: String,
+            default: "never"
+        },
+        endDate: {
+            type: Date
+        }
+    },
+    { _id: false }
+);
 
 const reminderSchema = new mongoose.Schema(
     {
@@ -51,19 +83,26 @@ const reminderSchema = new mongoose.Schema(
             trim: true,
             default: ""
         },
+        // Human-readable / legacy field. New clients also send `recurrence`.
         repeat: {
             type: String,
-            enum: {
-                values: REPEAT_OPTIONS,
-                message: "Invalid repeat option"
-            },
             default: "None"
+        },
+        recurrence: {
+            type: recurrenceSchema,
+            default: () => ({
+                frequency: "none",
+                interval: 1,
+                unit: "day",
+                weekDays: [],
+                monthDay: null,
+                ends: "never"
+            })
         },
         completed: {
             type: Boolean,
             default: false
         },
-        // Prevents awarding points more than once for the same reminder
         pointsAwarded: {
             type: Boolean,
             default: false
@@ -75,6 +114,5 @@ const reminderSchema = new mongoose.Schema(
 const Reminder = mongoose.model("Reminder", reminderSchema);
 
 Reminder.REMINDER_TYPES = REMINDER_TYPES;
-Reminder.REPEAT_OPTIONS = REPEAT_OPTIONS;
 
 module.exports = Reminder;

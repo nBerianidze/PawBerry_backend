@@ -1,3 +1,4 @@
+
 const mongoose = require("mongoose");
 const bcrypt = require("bcrypt");
 
@@ -46,14 +47,13 @@ const userSchema = new mongoose.Schema(
 );
 
 // Hash the password before saving a new user or when the password changes
-userSchema.pre("save", async function hashPassword(next) {
+userSchema.pre("save", async function hashPassword() {
     if (!this.isModified("password")) {
-        return next();
+        return;
     }
 
     const saltRounds = 10;
     this.password = await bcrypt.hash(this.password, saltRounds);
-    next();
 });
 
 userSchema.methods.matchPassword = async function matchPassword(enteredPassword) {

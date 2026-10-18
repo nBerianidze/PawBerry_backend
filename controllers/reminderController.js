@@ -1,6 +1,7 @@
 const Reminder = require("../models/Reminder");
 const { findOwnedPet } = require("./petController");
 const { addRewardPoints } = require("../utils/rewardService");
+const { sanitizeRecurrence, toLegacyRepeat } = require("../utils/recurrence");
 const { isValidObjectId, formatReminder, sendServerError } = require("../utils/helpers");
 
 const COMPLETE_REWARD_POINTS = 10;
@@ -37,7 +38,7 @@ async function getReminders(req, res) {
 
 async function createReminder(req, res) {
     try {
-        const { pet, title, type, description, date, time, repeat } = req.body;
+        const { pet, title, type, description, date, time, repeat, recurrence } = req.body;
 
         if (!title || !String(title).trim()) {
             return res.status(400).json({ message: "Reminder title is required" });
@@ -52,6 +53,7 @@ async function createReminder(req, res) {
             return res.status(petResult.error.status).json({ message: petResult.error.message });
         }
 
+        const normalizedRecurrence = sanitizeRecurrence(recurrence, repeat);
         const reminder = await Reminder.create({
             owner: req.user.id,
             pet: petResult.pet._id,
@@ -60,7 +62,8 @@ async function createReminder(req, res) {
             description,
             date: date || undefined,
             time,
-            repeat
+            repeat: toLegacyRepeat(normalizedRecurrence),
+            recurrence: normalizedRecurrence
         });
 
         const populatedReminder = await reminder.populate("pet", "name");
@@ -100,7 +103,7 @@ async function updateReminder(req, res) {
         }
 
         const reminder = result.reminder;
-        const { pet, title, type, description, date, time, repeat, completed } = req.body;
+        const { pet, title, type, description, date, time, repeat, recurrence, completed } = req.body;
 
         if (title !== undefined) {
             if (!title || !String(title).trim()) {
@@ -121,7 +124,14 @@ async function updateReminder(req, res) {
         if (description !== undefined) reminder.description = description;
         if (date !== undefined) reminder.date = date || undefined;
         if (time !== undefined) reminder.time = time;
-        if (repeat !== undefined) reminder.repeat = repeat;
+        if (recurrence !== undefined || repeat !== undefined) {
+            const normalizedRecurrence = sanitizeRecurrence(
+                recurrence !== undefined ? recurrence : reminder.recurrence,
+                repeat !== undefined ? repeat : reminder.repeat
+            );
+            reminder.recurrence = normalizedRecurrence;
+            reminder.repeat = toLegacyRepeat(normalizedRecurrence);
+        }
         if (completed !== undefined) reminder.completed = completed;
 
         const updatedReminder = await reminder.save();

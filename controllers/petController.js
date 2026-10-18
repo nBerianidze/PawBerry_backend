@@ -1,6 +1,21 @@
 const Pet = require("../models/Pet");
 const Reminder = require("../models/Reminder");
+const { deleteStoredImage } = require("./uploadController");
 const { isValidObjectId, formatPet, sendServerError } = require("../utils/helpers");
+
+const GENDERS = ["Male", "Female", "Unknown"];
+
+function normalizeGender(value) {
+    if (value === undefined || value === null) {
+        return undefined;
+    }
+    const trimmed = String(value).trim();
+    if (!trimmed) {
+        return "";
+    }
+    const match = GENDERS.find((item) => item.toLowerCase() === trimmed.toLowerCase());
+    return match || trimmed;
+}
 
 async function getPets(req, res) {
     try {
@@ -18,17 +33,20 @@ async function createPet(req, res) {
         if (!name || !name.trim()) {
             return res.status(400).json({ message: "Pet name is required" });
         }
+        if (!species || !String(species).trim()) {
+            return res.status(400).json({ message: "Species is required" });
+        }
 
         const pet = await Pet.create({
             owner: req.user.id,
             name: name.trim(),
-            species,
+            species: String(species).trim(),
             breed,
             dateOfBirth: dateOfBirth || undefined,
             favoriteToy,
-            gender,
+            gender: normalizeGender(gender) || "",
             weight,
-            profileImage
+            profileImage: profileImage || ""
         });
 
         return res.status(201).json(formatPet(pet));
@@ -94,13 +112,18 @@ async function updatePet(req, res) {
             pet.name = String(name).trim();
         }
 
-        if (species !== undefined) pet.species = species;
+        if (species !== undefined) {
+            if (!species || !String(species).trim()) {
+                return res.status(400).json({ message: "Species is required" });
+            }
+            pet.species = String(species).trim();
+        }
         if (breed !== undefined) pet.breed = breed;
         if (dateOfBirth !== undefined) pet.dateOfBirth = dateOfBirth || undefined;
         if (favoriteToy !== undefined) pet.favoriteToy = favoriteToy;
-        if (gender !== undefined) pet.gender = gender;
+        if (gender !== undefined) pet.gender = normalizeGender(gender) || "";
         if (weight !== undefined) pet.weight = weight;
-        if (profileImage !== undefined) pet.profileImage = profileImage;
+        if (profileImage !== undefined) pet.profileImage = profileImage || "";
 
         const updatedPet = await pet.save();
         return res.status(200).json(formatPet(updatedPet));
@@ -125,6 +148,7 @@ async function deletePet(req, res) {
         }
 
         await Reminder.deleteMany({ pet: result.pet._id, owner: req.user.id });
+        deleteStoredImage(result.pet.profileImage);
         await result.pet.deleteOne();
 
         return res.status(200).json({ message: "Pet deleted" });

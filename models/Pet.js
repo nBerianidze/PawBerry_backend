@@ -19,8 +19,8 @@ const petSchema = new mongoose.Schema(
         },
         breed: {
             type: String,
-            trim: true,
-            default: ""
+            required: [true, "Breed is required"],
+            trim: true
         },
         dateOfBirth: {
             type: Date

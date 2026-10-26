@@ -1,6 +1,7 @@
 
 const mongoose = require("mongoose");
 const bcrypt = require("bcrypt");
+const { isAcceptableEmailFormat } = require("../utils/emailValidation");
 
 const userSchema = new mongoose.Schema(
     {
@@ -27,7 +28,12 @@ const userSchema = new mongoose.Schema(
             unique: true,
             trim: true,
             lowercase: true,
-            match: [/^\S+@\S+\.\S+$/, "Please enter a valid email"]
+            validate: {
+                validator: function isEmailFormat(value) {
+                    return isAcceptableEmailFormat(value);
+                },
+                message: "Enter a valid email address, like name@example.com."
+            }
         },
         phone: {
             type: String,

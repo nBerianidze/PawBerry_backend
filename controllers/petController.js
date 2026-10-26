@@ -36,12 +36,15 @@ async function createPet(req, res) {
         if (!species || !String(species).trim()) {
             return res.status(400).json({ message: "Species is required" });
         }
+        if (!breed || !String(breed).trim()) {
+            return res.status(400).json({ message: "Breed is required" });
+        }
 
         const pet = await Pet.create({
             owner: req.user.id,
             name: name.trim(),
             species: String(species).trim(),
-            breed,
+            breed: String(breed).trim(),
             dateOfBirth: dateOfBirth || undefined,
             favoriteToy,
             gender: normalizeGender(gender) || "",
@@ -118,7 +121,12 @@ async function updatePet(req, res) {
             }
             pet.species = String(species).trim();
         }
-        if (breed !== undefined) pet.breed = breed;
+        if (breed !== undefined) {
+            if (!String(breed).trim()) {
+                return res.status(400).json({ message: "Breed is required" });
+            }
+            pet.breed = String(breed).trim();
+        }
         if (dateOfBirth !== undefined) pet.dateOfBirth = dateOfBirth || undefined;
         if (favoriteToy !== undefined) pet.favoriteToy = favoriteToy;
         if (gender !== undefined) pet.gender = normalizeGender(gender) || "";
